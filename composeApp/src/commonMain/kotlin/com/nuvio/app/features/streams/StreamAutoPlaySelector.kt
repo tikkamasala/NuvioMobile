@@ -50,6 +50,7 @@ object StreamAutoPlaySelector {
         bingeGroupOnly: Boolean = false,
         debridEnabled: Boolean = true,
         activeResolverProviderId: String? = null,
+        sortPreferences: StreamSortPreferences = StreamBadgeSettingsRepository.sortPreferencesSnapshot(),
     ): StreamItem? =
         evaluateAutoPlayStream(
             streams = streams,
@@ -64,6 +65,7 @@ object StreamAutoPlaySelector {
             bingeGroupOnly = bingeGroupOnly,
             debridEnabled = debridEnabled,
             activeResolverProviderId = activeResolverProviderId,
+            sortPreferences = sortPreferences,
         ).stream
 
     fun evaluateAutoPlayStream(
@@ -79,6 +81,7 @@ object StreamAutoPlaySelector {
         bingeGroupOnly: Boolean = false,
         debridEnabled: Boolean = true,
         activeResolverProviderId: String? = null,
+        sortPreferences: StreamSortPreferences = StreamBadgeSettingsRepository.sortPreferencesSnapshot(),
     ): StreamAutoPlayEvaluation {
         if (streams.isEmpty()) return StreamAutoPlayEvaluation()
 
@@ -87,16 +90,19 @@ object StreamAutoPlaySelector {
             StreamAutoPlaySource.INSTALLED_ADDONS_ONLY -> streams.filter { it.serverTarget != null || it.addonName in installedAddonNames }
             StreamAutoPlaySource.ENABLED_PLUGINS_ONLY -> streams.filter { it.addonName !in installedAddonNames }
         }
-        val candidateStreams = sourceScopedStreams.filter { stream ->
-            val isAddonStream = stream.addonName in installedAddonNames
-            if (stream.serverTarget != null) {
-                true
-            } else if (isAddonStream) {
-                selectedAddons.isEmpty() || stream.addonName in selectedAddons
-            } else {
-                selectedPlugins.isEmpty() || stream.addonName in selectedPlugins
-            }
-        }
+        val candidateStreams = StreamSortPresentation.sort(
+            streams = sourceScopedStreams.filter { stream ->
+                val isAddonStream = stream.addonName in installedAddonNames
+                if (stream.serverTarget != null) {
+                    true
+                } else if (isAddonStream) {
+                    selectedAddons.isEmpty() || stream.addonName in selectedAddons
+                } else {
+                    selectedPlugins.isEmpty() || stream.addonName in selectedPlugins
+                }
+            },
+            preferences = sortPreferences,
+        )
         if (candidateStreams.isEmpty()) return StreamAutoPlayEvaluation()
         if (mode == StreamAutoPlayMode.MANUAL && !bingeGroupOnly) {
             return StreamAutoPlayEvaluation()

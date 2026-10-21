@@ -25,6 +25,7 @@ import com.nuvio.app.features.streams.StreamBadgeSettingsRepository
 import com.nuvio.app.features.streams.StreamCard
 import com.nuvio.app.features.streams.StreamCardSkeleton
 import com.nuvio.app.features.streams.StreamItem
+import com.nuvio.app.features.streams.StreamSortPresentation
 import com.nuvio.app.features.streams.StreamsUiState
 import com.nuvio.app.features.streams.isSelectableForPlayback
 import com.nuvio.app.features.streams.rememberStreamSizeLabelFormat
@@ -55,7 +56,10 @@ internal fun PlayerStreamList(
         StreamBadgeSettingsRepository.ensureLoaded()
         StreamBadgeSettingsRepository.uiState
     }.collectAsStateWithLifecycle()
-    val streams = streamsUiState.allStreams
+    val sortPreferences = streamBadgeSettings.sortPreferences
+    val streams = remember(streamsUiState, sortPreferences) {
+        StreamSortPresentation.sort(streamsUiState.allStreams, sortPreferences)
+    }
     val visibleGroups = streamsUiState.filteredGroups
 
     when {

@@ -241,7 +241,7 @@ internal object DebridStreamMetadata {
         val audioChannels = streamAudioChannels(parsed?.channels.orEmpty(), searchText)
         val encode = streamEncode(parsed?.codec, searchText)
         val languages = parsed?.languages.orEmpty().mapNotNull { languageFor(it) }.ifEmpty {
-            DebridStreamLanguage.entries.filter { searchText.hasToken(it.code) }
+            DebridStreamLanguage.entries.filter { language -> searchText.mentionsLanguage(language) }
         }
         val releaseGroup = parsed?.group?.takeIf { it.isNotBlank() } ?: releaseGroupFromText(searchText)
         return DebridStreamFacts(
@@ -364,6 +364,52 @@ internal object DebridStreamMetadata {
             else -> DebridStreamEncode.UNKNOWN
         }
     }
+
+    private fun String.mentionsLanguage(language: DebridStreamLanguage): Boolean =
+        languageTokenPatterns.getValue(language).containsMatchIn(this) ||
+            languageFlags[language].orEmpty().any { flag -> contains(flag) }
+
+    // One precompiled pattern per language: this runs for every stream on each sort.
+    private val languageTokenPatterns: Map<DebridStreamLanguage, Regex> by lazy {
+        DebridStreamLanguage.entries.associateWith { language ->
+            val tokens = listOf(language.code, language.label) + languageAliases[language].orEmpty()
+            val alternation = tokens.joinToString("|") { Regex.escape(it.lowercase()) }
+            Regex("(^|[^a-z0-9])($alternation)([^a-z0-9]|\$)")
+        }
+    }
+
+    // Scene tags and names addons put in release titles, beyond the ISO code and English label.
+    private val languageAliases = mapOf(
+        DebridStreamLanguage.EN to listOf("eng"),
+        DebridStreamLanguage.FR to listOf("fre", "fra", "francais", "truefrench", "vff", "vfq", "vfi", "vf2", "vf"),
+        DebridStreamLanguage.IT to listOf("ita", "italiano"),
+        DebridStreamLanguage.ES to listOf("spa", "esp", "espanol", "castellano"),
+        DebridStreamLanguage.DE to listOf("ger", "deu", "deutsch"),
+        DebridStreamLanguage.PT to listOf("por", "portugues", "dublado"),
+        DebridStreamLanguage.PL to listOf("pol", "polski"),
+        DebridStreamLanguage.CS to listOf("cze", "ces"),
+        DebridStreamLanguage.JA to listOf("jpn", "jap"),
+        DebridStreamLanguage.KO to listOf("kor"),
+        DebridStreamLanguage.ZH to listOf("chi", "zho", "mandarin", "cantonese"),
+        DebridStreamLanguage.HI to listOf("hin"),
+        DebridStreamLanguage.MULTI to listOf("multi-audio", "dual-audio", "dual audio"),
+    )
+
+    private val languageFlags = mapOf(
+        DebridStreamLanguage.EN to listOf("🇬🇧", "🇺🇸"),
+        DebridStreamLanguage.FR to listOf("🇫🇷"),
+        DebridStreamLanguage.IT to listOf("🇮🇹"),
+        DebridStreamLanguage.ES to listOf("🇪🇸"),
+        DebridStreamLanguage.DE to listOf("🇩🇪"),
+        DebridStreamLanguage.PT to listOf("🇵🇹", "🇧🇷"),
+        DebridStreamLanguage.PL to listOf("🇵🇱"),
+        DebridStreamLanguage.CS to listOf("🇨🇿"),
+        DebridStreamLanguage.LA to listOf("🇲🇽"),
+        DebridStreamLanguage.JA to listOf("🇯🇵"),
+        DebridStreamLanguage.KO to listOf("🇰🇷"),
+        DebridStreamLanguage.ZH to listOf("🇨🇳"),
+        DebridStreamLanguage.HI to listOf("🇮🇳"),
+    )
 
     private fun languageFor(value: String): DebridStreamLanguage? {
         val normalized = value.lowercase()

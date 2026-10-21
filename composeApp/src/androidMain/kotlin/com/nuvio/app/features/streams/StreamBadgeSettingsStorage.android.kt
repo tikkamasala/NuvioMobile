@@ -20,9 +20,10 @@ actual object StreamBadgeSettingsStorage {
     private const val showInPlayerKey = "show_badges_in_player"
     private const val streamBackgroundModeKey = "stream_background_mode"
     private const val streamBadgePlacementKey = "stream_badge_placement"
+    private const val streamSortPreferencesKey = "stream_sort_preferences"
     private const val legacyDebridStreamBadgeRulesKey = "debrid_stream_badge_rules"
 
-    private val syncKeys = listOf(streamBadgeRulesKey, showFileSizeBadgesKey, showInPlayerKey, streamBadgePlacementKey, streamBackgroundModeKey)
+    private val syncKeys = listOf(streamBadgeRulesKey, showFileSizeBadgesKey, showInPlayerKey, streamBadgePlacementKey, streamBackgroundModeKey, streamSortPreferencesKey)
 
     private var preferences: SharedPreferences? = null
     private var legacyDebridPreferences: SharedPreferences? = null
@@ -68,6 +69,12 @@ actual object StreamBadgeSettingsStorage {
         saveString(streamBadgePlacementKey, placement)
     }
 
+    actual fun loadStreamSortPreferences(): String? = loadString(streamSortPreferencesKey)
+
+    actual fun saveStreamSortPreferences(preferences: String) {
+        saveString(streamSortPreferencesKey, preferences)
+    }
+
     actual fun loadLegacyDebridStreamBadgeRules(): String? =
         legacyDebridPreferences?.getString(ProfileScopedKey.of(legacyDebridStreamBadgeRulesKey), null)
 
@@ -111,6 +118,7 @@ actual object StreamBadgeSettingsStorage {
         loadShowInPlayer()?.let { put(showInPlayerKey, encodeSyncBoolean(it)) }
         loadStreamBadgePlacement()?.let { put(streamBadgePlacementKey, encodeSyncString(it)) }
         loadStreamBackgroundMode()?.let { put(streamBackgroundModeKey, encodeSyncString(it)) }
+        loadStreamSortPreferences()?.let { put(streamSortPreferencesKey, encodeSyncString(it)) }
     }
 
     actual fun replaceFromSyncPayload(payload: JsonObject) {
@@ -123,5 +131,6 @@ actual object StreamBadgeSettingsStorage {
         payload.decodeSyncBoolean(showInPlayerKey)?.let(::saveShowInPlayer)
         payload.decodeSyncString(streamBadgePlacementKey)?.let(::saveStreamBadgePlacement)
         payload.decodeSyncString(streamBackgroundModeKey)?.let(::saveStreamBackgroundMode)
+        payload.decodeSyncString(streamSortPreferencesKey)?.let(::saveStreamSortPreferences)
     }
 }

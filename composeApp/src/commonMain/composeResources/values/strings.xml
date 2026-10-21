@@ -899,6 +899,17 @@
     <string name="settings_stream_addon_logo_title">Addon logo</string>
     <string name="settings_stream_addon_logo_description">Show addon logo and name next to stream sources.</string>
     <string name="settings_stream_display_section">DISPLAY</string>
+    <string name="settings_stream_sort_section">SORTING</string>
+    <string name="settings_stream_sort_languages_title">Preferred languages</string>
+    <string name="settings_stream_sort_resolutions_title">Preferred resolutions</string>
+    <string name="settings_stream_sort_encodes_title">Preferred codecs</string>
+    <string name="settings_stream_sort_priority_title">Sort priority</string>
+    <string name="settings_stream_sort_priority_description">Which preference decides first when streams differ.</string>
+    <string name="settings_stream_sort_not_set">Not set</string>
+    <string name="settings_stream_sort_dialog_description">Tap in order of preference. When any preference is set, streams from all addons are shown as one sorted list and auto-play picks the first match.</string>
+    <string name="settings_stream_sort_key_language">Language</string>
+    <string name="settings_stream_sort_key_resolution">Resolution</string>
+    <string name="settings_stream_sort_key_encode">Codec</string>
     <string name="settings_stream_background_title">Background</string>
     <string name="settings_stream_background_description">Choose the background for the streams screen.</string>
     <string name="settings_stream_badge_position_title">Badge position</string>

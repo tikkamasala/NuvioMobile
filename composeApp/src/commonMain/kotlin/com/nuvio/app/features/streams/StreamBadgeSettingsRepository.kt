@@ -23,6 +23,7 @@ data class StreamBadgeSettingsUiState(
     val showInPlayer: Boolean = false,
     val badgePlacement: StreamBadgePlacement = StreamBadgePlacement.BOTTOM,
     val backgroundMode: StreamBackgroundMode = StreamBackgroundMode.Normal,
+    val sortPreferences: StreamSortPreferences = StreamSortPreferences(),
 )
 
 enum class StreamBackgroundMode {
@@ -52,6 +53,7 @@ object StreamBadgeSettingsRepository {
     private var showInPlayer = false
     private var badgePlacement = StreamBadgePlacement.BOTTOM
     private var backgroundMode = StreamBackgroundMode.Normal
+    private var sortPreferences = StreamSortPreferences()
 
     fun ensureLoaded() {
         if (hasLoaded) return
@@ -70,6 +72,7 @@ object StreamBadgeSettingsRepository {
         showInPlayer = false
         badgePlacement = StreamBadgePlacement.BOTTOM
         backgroundMode = StreamBackgroundMode.Normal
+        sortPreferences = StreamSortPreferences()
         _uiState.value = StreamBadgeSettingsUiState()
     }
 
@@ -86,6 +89,11 @@ object StreamBadgeSettingsRepository {
     fun badgePlacementSnapshot(): StreamBadgePlacement {
         ensureLoaded()
         return _uiState.value.badgePlacement
+    }
+
+    fun sortPreferencesSnapshot(): StreamSortPreferences {
+        ensureLoaded()
+        return _uiState.value.sortPreferences
     }
 
     suspend fun importStreamBadgeRulesFromUrl(url: String): StreamBadgeImportResult {
@@ -183,6 +191,15 @@ object StreamBadgeSettingsRepository {
         StreamBadgeSettingsStorage.saveStreamBackgroundMode(mode.name.lowercase())
     }
 
+    fun setSortPreferences(preferences: StreamSortPreferences) {
+        ensureLoaded()
+        val normalized = preferences.normalized()
+        if (sortPreferences == normalized) return
+        sortPreferences = normalized
+        publish()
+        StreamBadgeSettingsStorage.saveStreamSortPreferences(json.encodeToString(normalized))
+    }
+
     private fun loadFromDisk() {
         hasLoaded = true
         val storedRules = parseStreamBadgeRules(StreamBadgeSettingsStorage.loadStreamBadgeRules())
@@ -205,6 +222,7 @@ object StreamBadgeSettingsRepository {
                 }
             }
             ?: StreamBadgePlacement.BOTTOM
+        sortPreferences = parseStreamSortPreferences(StreamBadgeSettingsStorage.loadStreamSortPreferences())
         if (legacyRules != null) {
             saveStreamBadgeRules()
             StreamBadgeSettingsStorage.clearLegacyDebridStreamBadgeRules()
@@ -220,7 +238,19 @@ object StreamBadgeSettingsRepository {
             showInPlayer = showInPlayer,
             badgePlacement = badgePlacement,
             backgroundMode = backgroundMode,
+            sortPreferences = sortPreferences,
         )
+    }
+
+    private fun parseStreamSortPreferences(value: String?): StreamSortPreferences {
+        if (value.isNullOrBlank()) return StreamSortPreferences()
+        return try {
+            json.decodeFromString<StreamSortPreferences>(value).normalized()
+        } catch (_: SerializationException) {
+            StreamSortPreferences()
+        } catch (_: IllegalArgumentException) {
+            StreamSortPreferences()
+        }
     }
 
     private fun saveStreamBadgeRules() {

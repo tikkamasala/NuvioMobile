@@ -743,6 +743,19 @@ internal fun StreamList(
         StreamBadgeSettingsRepository.ensureLoaded()
         StreamBadgeSettingsRepository.uiState
     }.collectAsStateWithLifecycle()
+    val sortPreferences = streamBadgeSettings.sortPreferences
+    // With sort preferences set, all addons' streams are shown as one sorted list.
+    val sortedGroup = remember(filteredGroups, sortPreferences) {
+        if (sortPreferences.isActive) {
+            AddonStreamGroup(
+                addonName = "",
+                addonId = "sorted",
+                streams = StreamSortPresentation.sort(filteredGroups.flatMap { it.streams }, sortPreferences),
+            )
+        } else {
+            null
+        }
+    }
 
     CompositionLocalProvider(LocalStreamSizeLabelFormat provides formatStreamSize) {
     LazyColumn(
@@ -789,11 +802,12 @@ internal fun StreamList(
             }
 
             else -> {
-                filteredGroups.forEachIndexed { groupIndex, group ->
+                (sortedGroup?.let(::listOf) ?: filteredGroups).forEachIndexed { groupIndex, group ->
                     streamSection(
                         sectionKey = streamSectionRenderKey(groupIndex = groupIndex, group = group),
                         group = group,
-                        showHeader = uiState.selectedFilter == null,
+                        showHeader = uiState.selectedFilter == null && sortedGroup == null,
+                        groupBySource = sortedGroup == null,
                         debridEnabled = debridEnabled,
                         appendInstantServiceToDefaultName = appendInstantServiceToDefaultName,
                         showFileSizeBadges = streamBadgeSettings.showFileSizeBadges,
@@ -825,6 +839,7 @@ private fun LazyListScope.streamSection(
     sectionKey: String,
     group: AddonStreamGroup,
     showHeader: Boolean,
+    groupBySource: Boolean,
     debridEnabled: Boolean,
     appendInstantServiceToDefaultName: Boolean,
     showFileSizeBadges: Boolean,
@@ -849,8 +864,12 @@ private fun LazyListScope.streamSection(
         }
     }
 
-    val streamsBySource = group.streams.groupBy { stream ->
-        stream.sourceName?.takeIf { it.isNotBlank() } ?: stream.addonName
+    val streamsBySource = if (groupBySource) {
+        group.streams.groupBy { stream ->
+            stream.sourceName?.takeIf { it.isNotBlank() } ?: stream.addonName
+        }
+    } else {
+        mapOf("" to group.streams)
     }
     val sortedSources = streamsBySource.keys.sortedBy { it.lowercase() }
     val showSourceHeaders = sortedSources.size > 1

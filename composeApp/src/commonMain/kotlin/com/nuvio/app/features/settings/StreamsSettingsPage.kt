@@ -59,6 +59,24 @@ import com.nuvio.app.features.streams.StreamBadgePlacement
 import com.nuvio.app.features.streams.StreamBadgeRules
 import com.nuvio.app.features.streams.StreamBadgeSettingsRepository
 import com.nuvio.app.features.streams.StreamBackgroundMode
+import com.nuvio.app.features.streams.StreamSortKey
+import com.nuvio.app.features.debrid.DebridStreamEncode
+import com.nuvio.app.features.debrid.DebridStreamLanguage
+import com.nuvio.app.features.debrid.DebridStreamResolution
+import nuvio.composeapp.generated.resources.action_clear
+import nuvio.composeapp.generated.resources.action_save
+import nuvio.composeapp.generated.resources.settings_stream_sort_dialog_description
+import nuvio.composeapp.generated.resources.settings_stream_sort_encodes_title
+import nuvio.composeapp.generated.resources.settings_stream_sort_key_encode
+import nuvio.composeapp.generated.resources.settings_stream_sort_key_language
+import nuvio.composeapp.generated.resources.settings_stream_sort_key_resolution
+import nuvio.composeapp.generated.resources.settings_stream_sort_languages_title
+import nuvio.composeapp.generated.resources.settings_stream_sort_not_set
+import nuvio.composeapp.generated.resources.settings_stream_sort_priority_description
+import nuvio.composeapp.generated.resources.settings_stream_sort_priority_title
+import nuvio.composeapp.generated.resources.settings_stream_sort_resolutions_title
+import nuvio.composeapp.generated.resources.settings_stream_sort_section
+import com.nuvio.app.core.ui.DialogOption
 import kotlinx.coroutines.launch
 import nuvio.composeapp.generated.resources.Res
 import nuvio.composeapp.generated.resources.action_cancel
@@ -110,7 +128,9 @@ internal fun LazyListScope.streamsSettingsContent(isTablet: Boolean) {
         var showBadgeImportDialog by rememberSaveable { mutableStateOf(false) }
         var showBadgePositionDialog by rememberSaveable { mutableStateOf(false) }
         var showBackgroundDialog by rememberSaveable { mutableStateOf(false) }
+        var sortDialog by rememberSaveable { mutableStateOf<StreamSortDialog?>(null) }
         val badgePlacementLabel = streamBadgePlacementLabel(currentSettings.badgePlacement)
+        val sortPreferences = currentSettings.sortPreferences
 
         SettingsSection(
             title = stringResource(Res.string.settings_stream_badges_section),
@@ -176,6 +196,81 @@ internal fun LazyListScope.streamsSettingsContent(isTablet: Boolean) {
             }
         }
 
+        Spacer(
+            modifier = Modifier.height(
+                if (isTablet) NuvioTokens.Space.s18 else MaterialTheme.nuvio.spacing.listGap,
+            ),
+        )
+
+        SettingsSection(
+            title = stringResource(Res.string.settings_stream_sort_section),
+            isTablet = isTablet,
+        ) {
+            SettingsGroup(isTablet = isTablet) {
+                SettingsNavigationRow(
+                    title = stringResource(Res.string.settings_stream_sort_languages_title),
+                    description = sortOrderSummary(sortPreferences.languages) { it.label },
+                    isTablet = isTablet,
+                    onClick = { sortDialog = StreamSortDialog.LANGUAGES },
+                )
+                SettingsNavigationRow(
+                    title = stringResource(Res.string.settings_stream_sort_resolutions_title),
+                    description = sortOrderSummary(sortPreferences.resolutions) { it.label },
+                    isTablet = isTablet,
+                    onClick = { sortDialog = StreamSortDialog.RESOLUTIONS },
+                )
+                SettingsNavigationRow(
+                    title = stringResource(Res.string.settings_stream_sort_encodes_title),
+                    description = sortOrderSummary(sortPreferences.encodes) { it.label },
+                    isTablet = isTablet,
+                    onClick = { sortDialog = StreamSortDialog.ENCODES },
+                )
+                SettingsNavigationRow(
+                    title = stringResource(Res.string.settings_stream_sort_priority_title),
+                    description = sortPriorityLabel(sortPreferences.normalized().priority),
+                    isTablet = isTablet,
+                    onClick = { sortDialog = StreamSortDialog.PRIORITY },
+                )
+            }
+        }
+
+
+        when (sortDialog) {
+            StreamSortDialog.LANGUAGES -> StreamSortOrderDialog(
+                title = stringResource(Res.string.settings_stream_sort_languages_title),
+                selectedValues = sortPreferences.languages,
+                values = DebridStreamLanguage.entries - DebridStreamLanguage.UNKNOWN,
+                label = { it.label },
+                onSelected = { StreamBadgeSettingsRepository.setSortPreferences(sortPreferences.copy(languages = it)) },
+                onDismiss = { sortDialog = null },
+            )
+            StreamSortDialog.RESOLUTIONS -> StreamSortOrderDialog(
+                title = stringResource(Res.string.settings_stream_sort_resolutions_title),
+                selectedValues = sortPreferences.resolutions,
+                values = DebridStreamResolution.defaultOrder - DebridStreamResolution.UNKNOWN,
+                label = { it.label },
+                onSelected = { StreamBadgeSettingsRepository.setSortPreferences(sortPreferences.copy(resolutions = it)) },
+                onDismiss = { sortDialog = null },
+            )
+            StreamSortDialog.ENCODES -> StreamSortOrderDialog(
+                title = stringResource(Res.string.settings_stream_sort_encodes_title),
+                selectedValues = sortPreferences.encodes,
+                values = DebridStreamEncode.defaultOrder - DebridStreamEncode.UNKNOWN,
+                label = { it.label },
+                onSelected = { StreamBadgeSettingsRepository.setSortPreferences(sortPreferences.copy(encodes = it)) },
+                onDismiss = { sortDialog = null },
+            )
+            StreamSortDialog.PRIORITY -> StreamSortPriorityDialog(
+                selectedPriority = sortPreferences.normalized().priority,
+                onSelected = { priority ->
+                    StreamBadgeSettingsRepository.setSortPreferences(sortPreferences.copy(priority = priority))
+                    sortDialog = null
+                },
+                onDismiss = { sortDialog = null },
+            )
+            null -> Unit
+        }
+
         if (showBadgeImportDialog) {
             BadgeUrlManagerDialog(
                 currentRules = currentRules,
@@ -202,6 +297,130 @@ internal fun LazyListScope.streamsSettingsContent(isTablet: Boolean) {
                     showBadgePositionDialog = false
                 },
                 onDismiss = { showBadgePositionDialog = false },
+            )
+        }
+    }
+}
+
+private enum class StreamSortDialog {
+    LANGUAGES,
+    RESOLUTIONS,
+    ENCODES,
+    PRIORITY,
+}
+
+private val streamSortPriorityOptions: List<List<StreamSortKey>> = listOf(
+    listOf(StreamSortKey.LANGUAGE, StreamSortKey.RESOLUTION, StreamSortKey.ENCODE),
+    listOf(StreamSortKey.LANGUAGE, StreamSortKey.ENCODE, StreamSortKey.RESOLUTION),
+    listOf(StreamSortKey.RESOLUTION, StreamSortKey.LANGUAGE, StreamSortKey.ENCODE),
+    listOf(StreamSortKey.RESOLUTION, StreamSortKey.ENCODE, StreamSortKey.LANGUAGE),
+    listOf(StreamSortKey.ENCODE, StreamSortKey.LANGUAGE, StreamSortKey.RESOLUTION),
+    listOf(StreamSortKey.ENCODE, StreamSortKey.RESOLUTION, StreamSortKey.LANGUAGE),
+)
+
+@Composable
+private fun <T> sortOrderSummary(values: List<T>, label: (T) -> String): String =
+    if (values.isEmpty()) {
+        stringResource(Res.string.settings_stream_sort_not_set)
+    } else {
+        values.joinToString(", ", transform = label)
+    }
+
+@Composable
+private fun sortKeyLabel(key: StreamSortKey): String = stringResource(
+    when (key) {
+        StreamSortKey.LANGUAGE -> Res.string.settings_stream_sort_key_language
+        StreamSortKey.RESOLUTION -> Res.string.settings_stream_sort_key_resolution
+        StreamSortKey.ENCODE -> Res.string.settings_stream_sort_key_encode
+    },
+)
+
+@Composable
+private fun sortPriorityLabel(priority: List<StreamSortKey>): String =
+    priority.map { sortKeyLabel(it) }.joinToString(" → ")
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun <T> StreamSortOrderDialog(
+    title: String,
+    selectedValues: List<T>,
+    values: List<T>,
+    label: (T) -> String,
+    onSelected: (List<T>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val tokens = MaterialTheme.nuvio
+    var draft by remember(selectedValues) { mutableStateOf(selectedValues) }
+    DialogSurface(
+        onDismissRequest = onDismiss,
+        title = title,
+    ) {
+        Text(
+            text = stringResource(Res.string.settings_stream_sort_dialog_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = tokens.colors.textSecondary,
+        )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 420.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(values) { option ->
+                val position = draft.indexOf(option)
+                DialogOption(
+                    text = if (position >= 0) "${position + 1}. ${label(option)}" else label(option),
+                    selected = position >= 0,
+                    role = Role.Checkbox,
+                    onClick = { draft = if (position >= 0) draft - option else draft + option },
+                )
+            }
+        }
+        DialogButtons {
+            DialogButton(
+                text = stringResource(Res.string.action_clear),
+                onClick = { draft = emptyList() },
+            )
+            DialogButton(
+                text = stringResource(Res.string.action_save),
+                onClick = {
+                    onSelected(draft)
+                    onDismiss()
+                },
+                style = DialogButtonStyle.Primary,
+            )
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun StreamSortPriorityDialog(
+    selectedPriority: List<StreamSortKey>,
+    onSelected: (List<StreamSortKey>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val tokens = MaterialTheme.nuvio
+    DialogSurface(
+        onDismissRequest = onDismiss,
+        title = stringResource(Res.string.settings_stream_sort_priority_title),
+    ) {
+        Text(
+            text = stringResource(Res.string.settings_stream_sort_priority_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = tokens.colors.textSecondary,
+        )
+        streamSortPriorityOptions.forEach { option ->
+            DialogOption(
+                text = sortPriorityLabel(option),
+                selected = option == selectedPriority,
+                onClick = { onSelected(option) },
+            )
+        }
+        DialogButtons {
+            DialogButton(
+                text = stringResource(Res.string.action_cancel),
+                onClick = onDismiss,
             )
         }
     }
