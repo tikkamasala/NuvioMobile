@@ -107,6 +107,7 @@ class PlayerNextEpisodeTransitionTest {
                             title = "Next episode", thumbnail = null, overview = null,
                             released = null, hasAired = true, isWatched = false, unairedMessage = null,
                         ),
+                        directEpisodeAutoPlay = false,
                         showNextEpisodeCard = false,
                         nextEpisodeAutoPlaySearching = searching.value,
                         nextEpisodeAutoPlaySourceName = "Source",

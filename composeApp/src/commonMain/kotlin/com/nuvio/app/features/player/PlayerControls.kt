@@ -30,10 +30,10 @@ import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Groups
-import androidx.compose.material.icons.rounded.Forward10
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
-import androidx.compose.material.icons.rounded.Replay10
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
 import com.nuvio.app.core.ui.NuvioLoadingIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -98,6 +98,10 @@ internal fun PlayerControlsShell(
     releaseInfo: String? = null,
     badges: List<StreamBadge> = emptyList(),
     hideDetails: Boolean = false,
+    showEpisodeNavigation: Boolean = false,
+    previousEpisodeLoading: Boolean = false,
+    nextEpisodeLoading: Boolean = false,
+    onPreviousEpisodeClick: (() -> Unit)? = null,
     onNextEpisodeClick: (() -> Unit)? = null,
     onInteraction: () -> Unit = {},
     showPlaybackControls: Boolean = true,
@@ -106,8 +110,6 @@ internal fun PlayerControlsShell(
     onPartyClick: (() -> Unit)? = null,
     partyActive: Boolean = false,
     onTogglePlayback: () -> Unit,
-    onSeekBack: () -> Unit,
-    onSeekForward: () -> Unit,
     onResizeModeClick: () -> Unit,
     onSpeedClick: () -> Unit,
     onSubtitleClick: () -> Unit,
@@ -233,17 +235,24 @@ internal fun PlayerControlsShell(
                     CenterControls(
                         snapshot = playbackSnapshot,
                         metrics = metrics,
-                        onSeekBack = {
-                            if (!useLegacyLayout) onInteraction()
-                            onSeekBack()
-                        },
-                        onSeekForward = {
-                            if (!useLegacyLayout) onInteraction()
-                            onSeekForward()
-                        },
                         onTogglePlayback = {
                             if (!useLegacyLayout) onInteraction()
                             onTogglePlayback()
+                        },
+                        showEpisodeNavigation = showEpisodeNavigation,
+                        previousEpisodeLoading = previousEpisodeLoading,
+                        nextEpisodeLoading = nextEpisodeLoading,
+                        onPreviousEpisodeClick = onPreviousEpisodeClick?.let { onClick ->
+                            {
+                                if (!useLegacyLayout) onInteraction()
+                                onClick()
+                            }
+                        },
+                        onNextEpisodeClick = onNextEpisodeClick?.let { onClick ->
+                            {
+                                if (!useLegacyLayout) onInteraction()
+                                onClick()
+                            }
                         },
                         modifier = Modifier
                             .align(Alignment.Center)
@@ -319,7 +328,6 @@ internal fun PlayerControlsShell(
                         onAudioClick = onAudioClick,
                         onSourcesClick = onSourcesClick,
                         onEpisodesClick = onEpisodesClick,
-                        onNextEpisodeClick = onNextEpisodeClick,
                         onSpeedClick = onSpeedClick,
                         onResizeModeClick = onResizeModeClick,
                         onVideoSettingsClick = onVideoSettingsClick,
@@ -537,9 +545,12 @@ internal fun PlayerHeaderIconButton(
 private fun CenterControls(
     snapshot: PlayerPlaybackSnapshot,
     metrics: PlayerLayoutMetrics,
-    onSeekBack: () -> Unit,
-    onSeekForward: () -> Unit,
     onTogglePlayback: () -> Unit,
+    showEpisodeNavigation: Boolean,
+    previousEpisodeLoading: Boolean,
+    nextEpisodeLoading: Boolean,
+    onPreviousEpisodeClick: (() -> Unit)?,
+    onNextEpisodeClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -547,24 +558,32 @@ private fun CenterControls(
         horizontalArrangement = Arrangement.spacedBy(metrics.centerGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SideControlButton(
-            icon = Icons.Rounded.Replay10,
-            contentDescription = stringResource(Res.string.compose_player_seek_back_10),
-            metrics = metrics,
-            onClick = onSeekBack,
-        )
+        if (showEpisodeNavigation) {
+            SideControlButton(
+                icon = Icons.Rounded.SkipPrevious,
+                contentDescription = stringResource(Res.string.player_previous_episode),
+                metrics = metrics,
+                onClick = { onPreviousEpisodeClick?.invoke() },
+                enabled = onPreviousEpisodeClick != null,
+                isLoading = previousEpisodeLoading,
+            )
+        }
         PlayPauseControlButton(
             isPlaying = snapshot.isPlaying,
             isBuffering = snapshot.isLoading,
             metrics = metrics,
             onClick = onTogglePlayback,
         )
-        SideControlButton(
-            icon = Icons.Rounded.Forward10,
-            contentDescription = stringResource(Res.string.compose_player_seek_forward_10),
-            metrics = metrics,
-            onClick = onSeekForward,
-        )
+        if (showEpisodeNavigation) {
+            SideControlButton(
+                icon = Icons.Rounded.SkipNext,
+                contentDescription = stringResource(Res.string.player_next_episode),
+                metrics = metrics,
+                onClick = { onNextEpisodeClick?.invoke() },
+                enabled = onNextEpisodeClick != null,
+                isLoading = nextEpisodeLoading,
+            )
+        }
     }
 }
 
@@ -574,20 +593,28 @@ private fun SideControlButton(
     contentDescription: String,
     metrics: PlayerLayoutMetrics,
     onClick: () -> Unit,
+    enabled: Boolean = true,
+    isLoading: Boolean = false,
 ) {
     Box(
         modifier = Modifier
             .clip(CircleShape)
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(metrics.sideButtonPadding),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = Color.White,
-            modifier = Modifier.size(metrics.playIconSize),
-        )
+        if (isLoading) {
+            NuvioLoadingIndicator(
+                modifier = Modifier.size(metrics.playIconSize),
+            )
+        } else {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = Color.White.copy(alpha = if (enabled) 1f else 0.38f),
+                modifier = Modifier.size(metrics.playIconSize),
+            )
+        }
     }
 }
 

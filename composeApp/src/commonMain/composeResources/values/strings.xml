@@ -1427,6 +1427,7 @@
     <string name="custom_theme_preview">Preview</string>
     <string name="custom_theme_preview_accent">Your accent</string>
     <string name="player_next_episode">Next Episode</string>
+    <string name="player_previous_episode">Previous Episode</string>
     <string name="player_next_episode_finding_source">Finding source…</string>
     <string name="player_next_episode_playing_via_countdown">Playing via %1$s in %2$ds…</string>
     <string name="player_next_episode_thumbnail">Next episode thumbnail</string>

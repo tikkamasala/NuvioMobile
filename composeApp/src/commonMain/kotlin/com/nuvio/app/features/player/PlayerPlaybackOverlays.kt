@@ -52,6 +52,7 @@ internal fun BoxScope.PlayerPlaybackOverlays(
     overlayBottomPadding: Dp,
     isSeries: Boolean,
     nextEpisodeInfo: NextEpisodeInfo?,
+    directEpisodeAutoPlay: Boolean,
     showNextEpisodeCard: Boolean,
     nextEpisodeAutoPlaySearching: Boolean,
     nextEpisodeAutoPlaySourceName: String?,
@@ -130,9 +131,10 @@ internal fun BoxScope.PlayerPlaybackOverlays(
     }
 
     if (isSeries && !playerControlsLocked) {
+        val autoPlayInProgress = nextEpisodeAutoPlaySearching || nextEpisodeAutoPlayCountdown != null
         NextEpisodeCard(
             nextEpisode = nextEpisodeInfo,
-            visible = showNextEpisodeCard || nextEpisodeAutoPlaySearching || nextEpisodeAutoPlayCountdown != null,
+            visible = showNextEpisodeCard || (autoPlayInProgress && !directEpisodeAutoPlay),
             isAutoPlaySearching = nextEpisodeAutoPlaySearching,
             autoPlaySourceName = nextEpisodeAutoPlaySourceName,
             autoPlayCountdownSec = nextEpisodeAutoPlayCountdown,

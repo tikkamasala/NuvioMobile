@@ -300,9 +300,19 @@ private fun PlayerScreenRuntime.RenderPlayerControls(displayedPositionMs: Long, 
             releaseInfo = metaUiState.meta?.takeIf { it.id == parentMetaId }?.releaseInfo,
             badges = playerBadges,
             hideDetails = activeSkipInterval != null && !skipIntervalDismissed,
+            showEpisodeNavigation = isSeries,
+            previousEpisodeLoading = nextEpisodeAutoPlaySearching &&
+                directEpisodeAutoPlayVideoId != null && directEpisodeAutoPlayVideoId == previousEpisodeInfo?.videoId,
+            nextEpisodeLoading = nextEpisodeAutoPlaySearching &&
+                directEpisodeAutoPlayVideoId != null && directEpisodeAutoPlayVideoId == nextEpisodeInfo?.videoId,
+            onPreviousEpisodeClick = if (previousEpisodeInfo?.hasAired == true && !nextEpisodeAutoPlaySearching && nextEpisodeAutoPlayCountdown == null) {
+                {
+                    if (!partyBlocksControl()) playPreviousEpisode()
+                }
+            } else null,
             onNextEpisodeClick = if (nextEpisodeInfo?.hasAired == true && !nextEpisodeAutoPlaySearching && nextEpisodeAutoPlayCountdown == null) {
                 {
-                    if (!partyBlocksControl()) playNextEpisode()
+                    if (!partyBlocksControl()) playNextEpisode(direct = true)
                 }
             } else null,
             onInteraction = { controlsActivityTick += 1 },
@@ -321,8 +331,6 @@ private fun PlayerScreenRuntime.RenderPlayerControls(displayedPositionMs: Long, 
             },
             partyActive = partyActive,
             onTogglePlayback = { togglePlayback() },
-            onSeekBack = { seekBy(-10_000L) },
-            onSeekForward = { seekBy(10_000L) },
             onResizeModeClick = { cycleResizeMode() },
             onSpeedClick = { cyclePlaybackSpeed() },
             onSubtitleClick = {
@@ -484,6 +492,7 @@ private fun BoxScope.RenderPlaybackOverlays(
         overlayBottomPadding = overlayBottomPadding,
         isSeries = isSeries,
         nextEpisodeInfo = nextEpisodeInfo,
+        directEpisodeAutoPlay = directEpisodeAutoPlayVideoId != null,
         showNextEpisodeCard = showNextEpisodeCard,
         nextEpisodeAutoPlaySearching = nextEpisodeAutoPlaySearching,
         nextEpisodeAutoPlaySourceName = nextEpisodeAutoPlaySourceName,

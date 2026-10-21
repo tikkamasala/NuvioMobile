@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.nuvio.app.features.details.MetaDetailsRepository
+import com.nuvio.app.features.details.MetaVideo
 import com.nuvio.app.features.p2p.P2pSettingsRepository
 import com.nuvio.app.features.p2p.P2pStreamRequest
 import com.nuvio.app.features.p2p.P2pStreamingEngine
@@ -612,6 +613,7 @@ private fun PlayerScreenRuntime.BindPlayerMetadataAndSkipEffects() {
     ) {
         if (!isSeries || playerMetaVideos.isEmpty()) {
             nextEpisodeInfo = null
+            previousEpisodeInfo = null
             return@LaunchedEffect
         }
         val curSeason = activeSeasonNumber ?: return@LaunchedEffect
@@ -631,41 +633,49 @@ private fun PlayerScreenRuntime.BindPlayerMetadataAndSkipEffects() {
                 currentEpisode = curEpisode,
             )
         }
-        val nextSeason = nextVideo?.season
-        val nextEpisode = nextVideo?.episode
-        nextEpisodeInfo = if (nextVideo != null && nextSeason != null && nextEpisode != null) {
+        fun episodeInfo(video: MetaVideo?): NextEpisodeInfo? {
+            val season = video?.season ?: return null
+            val episode = video.episode ?: return null
             val playbackVideoId = buildPlaybackVideoId(
                 parentMetaId = parentMetaId,
-                seasonNumber = nextSeason,
-                episodeNumber = nextEpisode,
-                fallbackVideoId = nextVideo.id,
+                seasonNumber = season,
+                episodeNumber = episode,
+                fallbackVideoId = video.id,
             )
             val isWatched = watchProgressUiState.progressForVideo(
                 videoId = playbackVideoId,
                 parentMetaId = parentMetaId,
-                seasonNumber = nextSeason,
-                episodeNumber = nextEpisode,
+                seasonNumber = season,
+                episodeNumber = episode,
             )?.isEffectivelyCompleted == true || WatchingState.isEpisodeWatched(
                 watchedKeys = watchedUiState.watchedKeys,
                 metaType = parentMetaType,
                 metaId = parentMetaId,
-                episode = nextVideo,
+                episode = video,
             )
-            NextEpisodeInfo(
-                videoId = nextVideo.id,
-                season = nextSeason,
-                episode = nextEpisode,
-                title = nextVideo.title,
-                thumbnail = nextVideo.thumbnail,
-                overview = nextVideo.overview,
-                released = nextVideo.released,
-                hasAired = PlayerNextEpisodeRules.hasEpisodeAired(nextVideo.released),
+            return NextEpisodeInfo(
+                videoId = video.id,
+                season = season,
+                episode = episode,
+                title = video.title,
+                thumbnail = video.thumbnail,
+                overview = video.overview,
+                released = video.released,
+                hasAired = PlayerNextEpisodeRules.hasEpisodeAired(video.released),
                 isWatched = isWatched,
-                unairedMessage = if (!PlayerNextEpisodeRules.hasEpisodeAired(nextVideo.released)) {
-                    "$airsPrefix ${nextVideo.released ?: tbaLabel}"
+                unairedMessage = if (!PlayerNextEpisodeRules.hasEpisodeAired(video.released)) {
+                    "$airsPrefix ${video.released ?: tbaLabel}"
                 } else null,
             )
-        } else null
+        }
+        nextEpisodeInfo = episodeInfo(nextVideo)
+        previousEpisodeInfo = episodeInfo(
+            PlayerNextEpisodeRules.resolvePreviousEpisode(
+                videos = playerMetaVideos,
+                currentSeason = curSeason,
+                currentEpisode = curEpisode,
+            ),
+        )
     }
 
     LaunchedEffect(playbackSnapshot.isEnded) {

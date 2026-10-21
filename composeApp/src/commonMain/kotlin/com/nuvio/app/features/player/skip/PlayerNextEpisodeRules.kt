@@ -25,6 +25,28 @@ object PlayerNextEpisodeRules {
         return sortedEpisodes.getOrNull(currentIndex + 1)
     }
 
+    fun resolvePreviousEpisode(
+        videos: List<MetaVideo>,
+        currentSeason: Int?,
+        currentEpisode: Int?,
+    ): MetaVideo? {
+        if (currentSeason == null || currentEpisode == null) return null
+        val sortedEpisodes = videos
+            .filter { it.season != null && it.episode != null }
+            // Specials sort first, so stepping back from S1E1 shouldn't land on one.
+            .filter { currentSeason == 0 || it.season != 0 }
+            .sortedWith(
+                compareBy<MetaVideo> { it.season ?: Int.MAX_VALUE }
+                    .thenBy { it.episode ?: Int.MAX_VALUE }
+            )
+
+        val currentIndex = sortedEpisodes.indexOfFirst {
+            it.season == currentSeason && it.episode == currentEpisode
+        }
+        if (currentIndex < 0) return null
+        return sortedEpisodes.getOrNull(currentIndex - 1)
+    }
+
     fun shouldShowNextEpisodeCard(
         positionMs: Long,
         durationMs: Long,

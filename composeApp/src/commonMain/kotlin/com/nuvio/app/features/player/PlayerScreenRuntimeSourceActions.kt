@@ -6,6 +6,7 @@ import com.nuvio.app.features.debrid.DirectDebridPlaybackResolver
 import com.nuvio.app.features.debrid.toastMessage
 import com.nuvio.app.features.details.MetaDetailsRepository
 import com.nuvio.app.features.details.MetaVideo
+import com.nuvio.app.features.player.skip.NextEpisodeInfo
 import com.nuvio.app.features.downloads.DownloadItem
 import com.nuvio.app.features.downloads.DownloadSubtitles
 import com.nuvio.app.features.downloads.DownloadsRepository
@@ -448,29 +449,52 @@ internal fun PlayerScreenRuntime.switchToDownloadedEpisode(downloadItem: Downloa
     controlsVisible = true
 }
 
-internal fun PlayerScreenRuntime.playNextEpisode(automatic: Boolean = false) {
+/** [direct] plays from the player controls: no next-episode card and no countdown. */
+internal fun PlayerScreenRuntime.playNextEpisode(automatic: Boolean = false, direct: Boolean = false) {
     if (nextEpisodeAutoPlaySearching || nextEpisodeAutoPlayCountdown != null) return
     nextEpisodePreloadTriggered = false
     val playbackKey = activePlaybackKey
-    val nextVideoId = nextEpisodeInfo?.takeIf { it.hasAired }?.videoId ?: return
+    val nextInfo = nextEpisodeInfo?.takeIf { it.hasAired } ?: return
     fun isCurrentRequest(): Boolean = playbackKey == activePlaybackKey &&
-        nextEpisodeInfo?.videoId == nextVideoId &&
+        nextEpisodeInfo?.videoId == nextInfo.videoId &&
         (!automatic || (
             playerSettingsUiState.streamAutoPlayNextEpisodeEnabled &&
                 !nextEpisodeCardDismissed && isAtNextEpisodeThreshold()
             ))
     if (!isCurrentRequest()) return
     nextEpisodeAutoPlayAutomatic = automatic
+    directEpisodeAutoPlayVideoId = nextInfo.videoId.takeIf { direct }
+    if (direct) showNextEpisodeCard = false
+    launchEpisodeAutoPlay(nextInfo, ::isCurrentRequest)
+}
 
+internal fun PlayerScreenRuntime.playPreviousEpisode() {
+    if (nextEpisodeAutoPlaySearching || nextEpisodeAutoPlayCountdown != null) return
+    val playbackKey = activePlaybackKey
+    val previousInfo = previousEpisodeInfo?.takeIf { it.hasAired } ?: return
+    fun isCurrentRequest(): Boolean = playbackKey == activePlaybackKey &&
+        previousEpisodeInfo?.videoId == previousInfo.videoId
+    nextEpisodeAutoPlayAutomatic = false
+    directEpisodeAutoPlayVideoId = previousInfo.videoId
+    showNextEpisodeCard = false
+    launchEpisodeAutoPlay(previousInfo, ::isCurrentRequest)
+}
+
+private fun PlayerScreenRuntime.launchEpisodeAutoPlay(
+    episodeInfo: NextEpisodeInfo,
+    isCurrentRequest: () -> Boolean,
+) {
+    val playbackKey = activePlaybackKey
     scope.launchPlayerNextEpisodeAutoPlay(
         previousJob = nextEpisodeAutoPlayJob,
-        nextEpisodeInfo = nextEpisodeInfo,
+        nextEpisodeInfo = episodeInfo,
         allEpisodes = playerMetaVideos,
         parentMetaId = parentMetaId,
         parentMetaType = parentMetaType,
         contentType = contentType,
         settings = playerSettingsUiState,
         currentStreamBingeGroup = currentStreamBingeGroup,
+        countdownSeconds = if (directEpisodeAutoPlayVideoId != null) 0 else 3,
         onDownloadedEpisodeSelected = { item, episode ->
             if (isCurrentRequest()) switchToDownloadedEpisode(item, episode)
         },

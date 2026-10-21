@@ -62,6 +62,7 @@ internal fun PlayerScreenRuntime.cancelNextEpisodeAutoPlay() {
     nextEpisodeAutoPlayJob?.cancel()
     nextEpisodeAutoPlayJob = null
     nextEpisodeAutoPlayAutomatic = false
+    directEpisodeAutoPlayVideoId = null
     nextEpisodeAutoPlaySearching = false
     nextEpisodeAutoPlaySourceName = null
     nextEpisodeAutoPlayCountdown = null
@@ -76,6 +77,7 @@ internal fun CoroutineScope.launchPlayerNextEpisodeAutoPlay(
     contentType: String?,
     settings: PlayerSettingsUiState,
     currentStreamBingeGroup: String?,
+    countdownSeconds: Int,
     onDownloadedEpisodeSelected: (DownloadItem, MetaVideo) -> Unit,
     onEpisodeStreamSelected: (StreamItem, MetaVideo) -> Unit,
     onManualSelectionRequired: (MetaVideo) -> Unit,
@@ -327,7 +329,7 @@ internal fun CoroutineScope.launchPlayerNextEpisodeAutoPlay(
         onSearchingChanged(false)
         if (selected != null) {
             onSourceNameChanged((selected.name?.takeIf { it.isNotBlank() } ?: selected.addonName).trim())
-            for (i in 3 downTo 1) {
+            for (i in countdownSeconds downTo 1) {
                 onCountdownChanged(i)
                 delay(1000)
             }

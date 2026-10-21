@@ -183,6 +183,8 @@ internal class PlayerScreenRuntime(
     var parentalGuideHasShown by mutableStateOf(false)
     var playbackStartedForParentalGuide by mutableStateOf(false)
     var nextEpisodeInfo by mutableStateOf<NextEpisodeInfo?>(null)
+    var previousEpisodeInfo by mutableStateOf<NextEpisodeInfo?>(null)
+    var directEpisodeAutoPlayVideoId by mutableStateOf<String?>(null)
     var showNextEpisodeCard by mutableStateOf(false)
     var nextEpisodeCardDismissed by mutableStateOf(false)
     var nextEpisodeAutoPlaySearching by mutableStateOf(false)

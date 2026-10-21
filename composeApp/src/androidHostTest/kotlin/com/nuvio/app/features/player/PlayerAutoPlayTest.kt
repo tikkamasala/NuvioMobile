@@ -326,6 +326,17 @@ class PlayerAutoPlayTest {
         assertEquals(4, next?.episode)
     }
 
+    @Test
+    fun previousEpisodeStepsBackWithoutLandingOnSpecials() {
+        val special = MetaVideo(id = "autoplay-test:0:1", title = "Special", season = 0, episode = 1)
+        val videos = listOf(special) + episodes
+        assertEquals(
+            2,
+            PlayerNextEpisodeRules.resolvePreviousEpisode(videos, currentSeason = 1, currentEpisode = 3)?.episode,
+        )
+        assertNull(PlayerNextEpisodeRules.resolvePreviousEpisode(videos, currentSeason = 1, currentEpisode = 1))
+    }
+
     private fun startRuntime(settings: PlayerSettingsUiState? = null): PlayerScreenRuntime {
         WatchProgressStorage.initialize(RuntimeEnvironment.getApplication())
         WatchProgressRepository.clearLocalState()
