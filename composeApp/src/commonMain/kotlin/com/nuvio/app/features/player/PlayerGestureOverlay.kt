@@ -24,7 +24,13 @@ import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.LightMode
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -116,8 +122,21 @@ private fun PlayerGestureFeedback(
                             .width(6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        // Centered on the bar; unbounded width lets the digits overflow the 6dp
-                        // column evenly on both sides so the bar itself never moves.
+                        // Centered on the bar; unbounded width lets the icon and digits overflow the
+                        // 6dp column evenly on both sides so the bar itself never moves.
+                        Icon(
+                            imageVector = when (feedback.icon) {
+                                GestureFeedbackIcon.Brightness -> Icons.Rounded.LightMode
+                                GestureFeedbackIcon.VolumeMuted -> Icons.AutoMirrored.Rounded.VolumeOff
+                                else -> Icons.AutoMirrored.Rounded.VolumeUp
+                            },
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier
+                                .wrapContentWidth(unbounded = true)
+                                .size(20.dp),
+                        )
+                        Spacer(Modifier.height(4.dp))
                         Text(
                             text = percent.toString(),
                             color = Color.White,
