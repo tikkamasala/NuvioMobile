@@ -15,11 +15,12 @@ actual object StreamBadgeSettingsStorage {
     private const val showFileSizeBadgesKey = "show_file_size_badges"
     private const val showAddonLogoKey = "show_addon_logo"
     private const val showInPlayerKey = "show_badges_in_player"
+    private const val playerBadgeSourceKey = "player_badge_source"
     private const val streamBackgroundModeKey = "stream_background_mode"
     private const val streamBadgePlacementKey = "stream_badge_placement"
     private const val streamSortPreferencesKey = "stream_sort_preferences"
     private const val legacyDebridStreamBadgeRulesKey = "debrid_stream_badge_rules"
-    private val syncKeys = listOf(streamBadgeRulesKey, showFileSizeBadgesKey, showInPlayerKey, streamBadgePlacementKey, streamBackgroundModeKey, streamSortPreferencesKey)
+    private val syncKeys = listOf(streamBadgeRulesKey, showFileSizeBadgesKey, showInPlayerKey, playerBadgeSourceKey, streamBadgePlacementKey, streamBackgroundModeKey, streamSortPreferencesKey)
 
     actual fun loadStreamBadgeRules(): String? = loadString(streamBadgeRulesKey)
 
@@ -43,6 +44,12 @@ actual object StreamBadgeSettingsStorage {
 
     actual fun saveShowInPlayer(enabled: Boolean) {
         saveBoolean(showInPlayerKey, enabled)
+    }
+
+    actual fun loadPlayerBadgeSource(): String? = loadString(playerBadgeSourceKey)
+
+    actual fun savePlayerBadgeSource(source: String) {
+        saveString(playerBadgeSourceKey, source)
     }
 
     actual fun loadStreamBadgePlacement(): String? = loadString(streamBadgePlacementKey)
@@ -95,6 +102,7 @@ actual object StreamBadgeSettingsStorage {
         loadStreamBadgeRules()?.let { put(streamBadgeRulesKey, encodeSyncString(it)) }
         loadShowFileSizeBadges()?.let { put(showFileSizeBadgesKey, encodeSyncBoolean(it)) }
         loadShowInPlayer()?.let { put(showInPlayerKey, encodeSyncBoolean(it)) }
+        loadPlayerBadgeSource()?.let { put(playerBadgeSourceKey, encodeSyncString(it)) }
         loadStreamBadgePlacement()?.let { put(streamBadgePlacementKey, encodeSyncString(it)) }
         loadStreamBackgroundMode()?.let { put(streamBackgroundModeKey, encodeSyncString(it)) }
         loadStreamSortPreferences()?.let { put(streamSortPreferencesKey, encodeSyncString(it)) }
@@ -108,6 +116,7 @@ actual object StreamBadgeSettingsStorage {
         payload.decodeSyncString(streamBadgeRulesKey)?.let(::saveStreamBadgeRules)
         payload.decodeSyncBoolean(showFileSizeBadgesKey)?.let(::saveShowFileSizeBadges)
         payload.decodeSyncBoolean(showInPlayerKey)?.let(::saveShowInPlayer)
+        payload.decodeSyncString(playerBadgeSourceKey)?.let(::savePlayerBadgeSource)
         payload.decodeSyncString(streamBadgePlacementKey)?.let(::saveStreamBadgePlacement)
         payload.decodeSyncString(streamBackgroundModeKey)?.let(::saveStreamBackgroundMode)
         payload.decodeSyncString(streamSortPreferencesKey)?.let(::saveStreamSortPreferences)
